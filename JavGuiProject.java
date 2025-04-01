@@ -7,6 +7,8 @@ package com.mycompany.javaguiproject;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
+import java.net.*;
 import java.util.ArrayList;
 import javax.swing.*;
 
@@ -17,6 +19,8 @@ import javax.swing.*;
 public class JavaGUIProject {
     
     static ArrayList<Question> questions = new ArrayList<>();
+    
+    static String IP = "http://localhost:8000/";
     
     public static void main(String[] args) {
         // Create a new JFrame object
@@ -34,7 +38,8 @@ public class JavaGUIProject {
         // Create buttons
         JButton takeTest = new JButton("Take test");
         JButton makeTest = new JButton("Make test");
-
+        
+        
         // Create a JPanel to hold the buttons
         JPanel panel = new JPanel();
 
@@ -44,22 +49,14 @@ public class JavaGUIProject {
         // Add buttons to the panel
         panel.add(takeTest);
         panel.add(makeTest);
-
+        
+        
         // Add the label and panel to the frame
         frame.setLayout(new FlowLayout());  // Optional: to arrange components in a flow
         frame.add(label);
         frame.add(panel);
         
-        // Add action listener to the "Take test" button
-        takeTest.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Handle button click for "Take test"
-                System.out.println("Take test button clicked");
-                // You can add further logic here (e.g., open a new window for the test)
-            }
-        });
-
+        
         // Add action listener to the "Make test" button
         makeTest.addActionListener(new ActionListener() {
             @Override
@@ -83,6 +80,7 @@ public class JavaGUIProject {
         // Make the window visible
         frame.setVisible(true);
     }
+    
 }
 
 class Question {
@@ -119,8 +117,19 @@ class Question {
         return checkBoxes;
     }
     
+}
+
+class TestTakerDisplay extends JFrame {
     
+    int questionNumber = 1;
     
+    JLabel questionLabel;
+    JTextField questionField;
+    
+    JCheckBox[] checkBoxes;
+    JTextField[] answerFields;
+    
+    Button previous;
     
 }
 
@@ -139,9 +148,9 @@ class TestEditorDisplay extends JFrame {
     public TestEditorDisplay() {
         // Set up the JFrame
         setTitle("Test Editor");
-        setSize(400, 300);
+        setSize(400, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(6, 2)); // Grid layout for organized display
+        setLayout(new GridLayout(7, 2)); // Grid layout for organized display
 
         // Question prompt
         questionLabel = new JLabel("Question " + this.questionNumber + ": ");
@@ -168,8 +177,11 @@ class TestEditorDisplay extends JFrame {
         
         Button next = new Button("Next Question");
         
+        JButton finishButton = new JButton("Finish and Save");
+        
         add(previous);
         add(next);
+        add(finishButton);
         
         next.addActionListener(new ActionListener() {
             @Override
@@ -203,6 +215,17 @@ class TestEditorDisplay extends JFrame {
                 loadQuestion();
             }
         });
+        finishButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Call the method to save the questions to CSV
+                saveQuestionsToCSV(JavaGUIProject.questions, "test.csv", "key.csv");
+                uploadFileToServer("key.csv", JavaGUIProject.IP);
+                System.out.println(JavaGUIProject.IP);
+                JOptionPane.showMessageDialog(null, "Test saved to CSV files!");
+            }
+        });
+        
         
         // Make the frame visible
         setVisible(true);
@@ -210,7 +233,8 @@ class TestEditorDisplay extends JFrame {
     
     void loadQuestion() {
         //System.out.println(JavaGUIProject.questions.size());
-        if(JavaGUIProject.questions.size() > this.questionNumber) {
+        if(JavaGUIProject.questions.size() >= this.questionNumber) {
+            
             if(this.questionNumber == 1) {
                 previous.setEnabled(false);
             }
@@ -260,85 +284,85 @@ class TestEditorDisplay extends JFrame {
         JavaGUIProject.questions.set(index, new Question(prompt, answerFields, checkBoxes));
     }
 
-    
-    
-}
-
-/*class MakeQuestionGUI extends JFrame {
-    
-    int questionNumber;
-    
-    public MakeQuestionGUI(int questionNumber) {
-        this.questionNumber = questionNumber;
-
-        // Set up the JFrame
-        setTitle("Test Editor");
-        setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(6, 2)); // Grid layout for organized display
-
-        // Question prompt
-        JLabel questionLabel = new JLabel("Question " + this.questionNumber + ": ");
-        JTextField questionField = new JTextField(20);
-        add(questionLabel);
-        add(questionField);
-
-        // Answer options with checkboxes
-        JCheckBox[] checkBoxes = new JCheckBox[4];
-        JTextField[] answerFields = new JTextField[4];
-        
-        for (int i = 0; i < 4; i++) {
-            checkBoxes[i] = new JCheckBox("");
-            answerFields[i] = new JTextField(20);
-            add(answerFields[i]);
-            add(checkBoxes[i]);
-        }
-        
-        
-        Button previous = new Button("Previous Question");
-        if(this.questionNumber == 1) {
-            previous.setEnabled(false);
-        }
-        
-        Button next = new Button("Next Question");
-        
-        add(previous);
-        add(next);
-        
-        next.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String[] answers = new String[4];
-                int count = 0;
-                for(JTextField a : answerFields) {
-                    answers[count] = a.getText();
-                    count++;
+    public void saveQuestionsToCSV(ArrayList<Question> questions, String testPath, String keyPath) {
+        try (
+            FileWriter writerWithoutCheckboxes = new FileWriter(testPath);
+            FileWriter writerWithCheckboxes = new FileWriter(keyPath)
+        ) {
+            for (Question question : questions) {
+                // Prepare data for the CSV without checkboxes
+                writerWithoutCheckboxes.append(question.getPrompt()).append(",");
+                String[] answerFields = question.getAnswerFields();
+                for (int i = 0; i < answerFields.length; i++) {
+                    writerWithoutCheckboxes.append(answerFields[i]);
+                    if (i < answerFields.length - 1) writerWithoutCheckboxes.append(",");
                 }
-                
-                boolean[] checks = new boolean[4];
-                count = 0;
-                for (JCheckBox c : checkBoxes) {
-                    checks[count] = c.isSelected();
-                    count++;
+                writerWithoutCheckboxes.append("\n");
+
+                // Prepare data for the CSV with checkboxes if they exist
+                boolean[] checkBoxes = question.getCheckBoxes();
+                if (checkBoxes != null) {
+                    writerWithCheckboxes.append(question.getPrompt()).append(",");
+                    for (int i = 0; i < answerFields.length; i++) {
+                        writerWithCheckboxes.append(answerFields[i]);
+                        if (i < answerFields.length - 1) writerWithCheckboxes.append(",");
+                    }
+                    writerWithCheckboxes.append(",");
+
+                    for (int i = 0; i < checkBoxes.length; i++) {
+                        writerWithCheckboxes.append(Boolean.toString(checkBoxes[i]));
+                        if (i < checkBoxes.length - 1) writerWithCheckboxes.append(",");
+                    }
+                    writerWithCheckboxes.append("\n");
                 }
-                
-                saveQuestion(questionField.getText(), answers, checks);
-                
-                // Hide the current frame
-                setVisible(false);
-                
-                // Create and show the new MakeQuestionGUI window
-                new MakeQuestionGUI(questionNumber + 1);
             }
-        });
-        
-        
-        // Make the frame visible
-        setVisible(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void uploadFileToServer(String filePath, String serverURL) {
+        String boundary = "----WebKitFormBoundary";
+        try {
+            File file = new File(filePath);
+            HttpURLConnection connection = (HttpURLConnection) new URL(serverURL).openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+            try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
+                // Write file data
+                out.writeBytes("--" + boundary + "\r\n");
+                out.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"\r\n");
+                out.writeBytes("Content-Type: text/csv\r\n\r\n");
+
+                FileInputStream fileInputStream = new FileInputStream(file);
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+                fileInputStream.close();
+
+                out.writeBytes("\r\n--" + boundary + "--\r\n");
+                out.flush();
+            }
+
+            // Get response from the server
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("File uploaded successfully: " + filePath);
+            } else {
+                System.err.println("Failed to upload file: " + filePath);
+            }
+
+            connection.disconnect();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error uploading file: " + filePath + " - " + e.getMessage());
+        }
     }
     
     
-    
-    
-    
-}*/
+}
