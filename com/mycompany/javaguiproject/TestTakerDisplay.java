@@ -38,19 +38,22 @@ public class TestTakerDisplay extends JFrame {
     ArrayList<Question> questions;
 
     public TestTakerDisplay(File CSVTest) {
+        //setup the test window
         setTitle("Test");
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(7, 2));
 
+        //init our elements
         questionLabel = new JLabel("Question " + this.questionNumber + ": ");
         questionField = new JLabel();
         add(questionLabel);
         add(questionField);
 
+        
         checkBoxes = new JCheckBox[4];
         answerLabels = new JLabel[4];
-
+        //init the arrays of labels and boxes
         for (int i = 0; i < 4; i++) {
             answerLabels[i] = new JLabel();
             checkBoxes[i] = new JCheckBox("");
@@ -63,6 +66,7 @@ public class TestTakerDisplay extends JFrame {
 
         next = new Button("Next Question");
         JButton finishButton = new JButton("Finish and Submit");
+
         
         next.addActionListener(new ActionListener() {
             @Override
@@ -81,10 +85,12 @@ public class TestTakerDisplay extends JFrame {
                 loadQuestion();
             }
         });
-        
+
+        //run when the finish button is clicked
         finishButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                //ask the user if they are sure they will finish the test
                 int result = JOptionPane.showConfirmDialog(
                     null,
                     "Are you sure?",
@@ -93,6 +99,7 @@ public class TestTakerDisplay extends JFrame {
                 );
 
                 if (result == JOptionPane.YES_OPTION) {
+                    //save to the answers file
                     saveAnswer(questionNumber, jboxToBoolArr(checkBoxes));
                     saveAnswers();
                     JavaGUIProject.main(new String[0]);
@@ -106,8 +113,10 @@ public class TestTakerDisplay extends JFrame {
         add(next);
         add(finishButton);
 
+        //load the questions
         questions = readQuestionsFromCSV(CSVTest);
 
+        //load the first questions
         loadQuestion();
 
         setVisible(true);
@@ -140,16 +149,20 @@ public class TestTakerDisplay extends JFrame {
     }
 
     void loadQuestion() {
+        //make sure the previous question isn't always enabled
         if(questionNumber == 1) {
             previous.setEnabled(false);
         } else {
             previous.setEnabled(true);
         }
+        //do not excede the length of the test
         if(questionNumber == questions.size()) {
             next.setEnabled(false);
         } else {
             next.setEnabled(true);
         }
+
+        //load the question to the screen
         Question question = questions.get(this.questionNumber - 1);
         questionLabel.setText("Question " + this.questionNumber + ": ");
         questionField.setText(question.getPrompt());
@@ -159,7 +172,8 @@ public class TestTakerDisplay extends JFrame {
             checkBoxes[i].setSelected(question.getCheckBoxes()[i]);
         }
     }
-    
+
+    //convert the array of jcheckboxes to booleans
     boolean[] jboxToBoolArr(JCheckBox[] jboxes) {
         boolean[] result = new boolean[jboxes.length];
         for (int i = 0; i < jboxes.length; i++) {
@@ -174,6 +188,7 @@ public class TestTakerDisplay extends JFrame {
     }
     
     void saveAnswers() {
+        // make a file writer that will sve to an Answers file
         try {
             FileWriter writer = new FileWriter("Answers.csv");
             
